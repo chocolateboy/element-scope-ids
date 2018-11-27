@@ -1,0 +1,68 @@
+{
+    "name": "element-scope-ids",
+    "version": "0.0.1",
+    "description": "scope IDs to an element by rewriting them to be globally unique",
+    "repository": "chocolateboy/element-scope-ids",
+    "author": "chocolateboy",
+    "license": "Artistic-2.0",
+    "main": "dist/index.js",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "npm run compile && npm run bundle",
+        "bundle": "npm run bundle:js && npm run bundle:types",
+        "bundle:js": "npm run bundle:cjs && npm run bundle:esm",
+        "bundle:cjs": "rollup -c --format cjs --file dist/index.js target/index.cjs.js",
+        "bundle:esm": "rollup -c --format esm --file dist/index.mjs target/index.js",
+        "bundle:types": "shx cp target/index.d.ts dist",
+        "clean": "shx rm -rf ./dist ./target ./.*cache* ./src/*.{js,d.ts,map}",
+        "compile": "tsc --project tsconfig.json --outDir target",
+        "prepublishOnly": "npm run clean && npm run build"
+    },
+    "files": [
+        "dist/index.d.ts",
+        "dist/index.js",
+        "dist/index.mjs"
+    ],
+    "dependencies": {
+        "events": "^3.0.0",
+        "lodash.flatmap": "^4.5.0",
+        "nanoid": "^2.0.0"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.1.6",
+        "@babel/preset-env": "^7.1.6",
+        "rollup": "^0.67.3",
+        "rollup-plugin-babel": "^4.0.3",
+        "shx": "^0.3.2",
+        "typescript": "^3.1.6"
+    },
+    "browserslist": [
+        "> 1%",
+        "ie 11",
+        "not op_mini all"
+    ],
+    "keywords": [
+        "a11y",
+        "angular",
+        "aria",
+        "dom",
+        "element",
+        "form",
+        "html",
+        "id",
+        "idlist",
+        "idref",
+        "ids",
+        "label",
+        "react",
+        "rename",
+        "replace",
+        "rewire",
+        "rewrite",
+        "scope",
+        "scoped",
+        "spa",
+        "vue"
+    ]
+}
