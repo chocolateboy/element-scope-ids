@@ -17,7 +17,8 @@
         "bundle:types": "shx cp target/index.d.ts dist",
         "clean": "shx rm -rf ./dist ./target ./.*cache* ./src/*.{js,d.ts,map}",
         "compile": "tsc --project tsconfig.json --outDir target",
-        "prepublishOnly": "npm run clean && npm run build"
+        "prepublishOnly": "npm run clean && npm run test",
+        "test": "npm run build && node ./test.js"
     },
     "files": [
         "dist/index.d.ts",

@@ -1,5 +1,6 @@
 # element-scope-ids
 
+[![Build Status](https://secure.travis-ci.org/chocolateboy/element-scope-ids.svg)](http://travis-ci.org/chocolateboy/element-scope-ids)
 [![NPM Version](http://img.shields.io/npm/v/element-scope-ids.svg)](https://www.npmjs.org/package/element-scope-ids)
 
 - [NAME](#name)
