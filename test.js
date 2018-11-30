@@ -18,3 +18,9 @@ assert(scopeIds.name === 'scopeIds')
 
 assert(typeof scopeOwnIds === 'function')
 assert(scopeOwnIds.name === 'scopeOwnIds')
+
+assert(typeof Scoper.scopeIds === 'function')
+assert(Scoper.scopeIds === scopeIds)
+
+assert(typeof Scoper.scopeOwnIds === 'function')
+assert(Scoper.scopeOwnIds === scopeOwnIds)

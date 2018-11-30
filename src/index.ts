@@ -17,10 +17,11 @@ type Id = { name: string, value: string, next?: Include }
 // rewrite
 type Include = (HTMLElement, id: Id) => boolean
 
-// a cache tracking unscoped IDs to their scoped (i.e. unique) replacements
+// a cache mapping unscoped IDs to their scoped (i.e. unique) replacements
 type Scope = { [key: string]: string }
 
 // the length of the random part of each scoped ID
+// https://alex7kom.github.io/nano-nanoid-cc/
 const HASH_LENGTH = 16
 
 // the options optionally passed to a) the constructor, and b) the `scopeIds`

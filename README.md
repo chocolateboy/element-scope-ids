@@ -13,7 +13,7 @@
   - [Options](#type-options)
   - [Scope](#type-scope)
 - [EXPORTS](#exports)
-  - [Scoper (default)](#scoper-default)
+  - [Scoper (default)](#scoper-class)
     - [Events](#events)
       - [id](#id)
       - [ids](#ids)
@@ -115,7 +115,7 @@ form elements, these attributes will still need to be translated to `id` attribu
 values, so this does little more than shift the problem sideways.
 
 Rather than trying to migrate every codebase and library which uses IDs to the sticking plaster
-of a non-unique replacement for `id` values, a simpler solution is to make IDs
+of using a different attribute with the same drawbacks, a simpler solution is to make IDs
 <abbr title="Do What We Mean">DWWM</abbr> by automagically scoping (i.e. namespacing/renaming)
 them, in the same way that scoped CSS — and scoped (i.e. local) variables — make components easy
 to name and safe to compose.
@@ -126,7 +126,7 @@ The following types are referenced in the descriptions below:
 
 ## Idrefs <a name="type-idrefs"></a>
 
-An array of attribute names to look for IDs in.
+An array of attribute names to look for IDs in or a function which returns the names.
 
 ```typescript
 type Idrefs = Iterable<string> | (idrefs: Iterable<string>) => Iterable<string>
@@ -134,7 +134,7 @@ type Idrefs = Iterable<string> | (idrefs: Iterable<string>) => Iterable<string>
 
 ## Options <a name="type-options"></a>
 
-An options object which can be passed to the [Scope](#scope-class) constructor
+An options object which can be passed to the [Scoper](#scoper-class) constructor
 and its [`scopeIds`](#scope-ids-method) and [`scopeOwnIds`](#scope-own-ids-method) methods.
 
 ```typescript
@@ -148,7 +148,7 @@ type Options = {
 ## Scope <a name="type-scope"></a>
 
 A scope is a mapping from old ID names to their new (unique) names which is populated when
-the IDs in an element or its descendants have been replaced.
+the IDs in an element or its descendants are replaced.
 
 ```typescript
 type Scope = { [key: string]: string }
@@ -156,7 +156,7 @@ type Scope = { [key: string]: string }
 
 # EXPORTS
 
-## Scoper (default)
+## Scoper (default) <a name="scoper-class"></a>
 
 Instances of this class can be used to rewrite IDs within DOM elements so that they can
 safely be composed with other elements which use the same IDs. This is done by rewriting
@@ -189,15 +189,16 @@ events are supported:
 
 Fired each time an ID-like attribute is changed. As well as the `id` attribute itself, this also includes
 ARIA attributes such as `aria-controls` and the `for` attribute on LABEL elements. The handler is passed
-the element and a delta object which contains the old ID and the new ID. Note that an event is fired for
-*each ID* rather than each attribute. This distinction is important for attributes which may take
-multiple IDs, e.g. `aria-labelledby`.
+the element and a delta object which contains the old ID and the new ID.
 
 ```javascript
 scoper.on('id', (element, id) => {
     element.setAttribute(`data-original-${id.name}`, id.old)
 })
 ```
+
+Note that an event is fired for *each ID* rather than each attribute. This distinction is important
+for attributes which may take multiple IDs, e.g. `aria-labelledby`.
 
 #### ids
 
@@ -240,7 +241,7 @@ const scoper = new Scoper({
 
 A function which is used to exclude attributes from substitution. Called for every
 ID-like attribute in every target element. If supplied, the function can veto
-replacing the ID by returning false. Can be used to filter by type e.g. the default
+replacing the ID(s) by returning false. Can be used to filter by type e.g. the default
 implementation restricts the `for` attribute to LABEL elements:
 
 ```javascript
@@ -402,7 +403,8 @@ for (const el of document.querySelectorAll('[data-preserve-ids]')) {
 **before**:
 
 ```html
-<div id="foo" data-preserve-ids="bar baz">
+<div data-preserve-ids="bar baz">
+    <span id="foo"></span>
     <span id="bar"></span>
     <span id="baz"></span>
     <span id="quux"></span>
@@ -412,7 +414,8 @@ for (const el of document.querySelectorAll('[data-preserve-ids]')) {
 **after**:
 
 ```html
-<div id="foo-abc123" data-preserve-ids="bar baz">
+<div data-preserve-ids="bar baz">
+    <span id="foo-abc123"></span>
     <span id="bar"></span>
     <span id="baz"></span>
     <span id="quux-xyz321"></span>
@@ -431,7 +434,7 @@ widget after its IDs have been scoped.
 import 'jquery-initialize'
 import Tablist from '@accede-web/tablist'
 
-// scope IDs in every current and future element with data-scope-ids="true"
+// scope IDs in every current and future element which has data-scope-ids="true"
 $.initialize(`[data-scope-ids="true"]`, function () {
     scopeIds(this)
     $(this).attr('data-scope-ids', 'done') // mark the IDs as scoped
@@ -466,9 +469,15 @@ The following NPM scripts are available:
 
 # SEE ALSO
 
+## IDs
+
+- [@zthun/zidentifier.core](https://www.npmjs.com/package/@zthun/zidentifier.core) - generate namespaced IDs from nested paths
+
+## ARIA widgets
+
 - [@accede-web/accordion](https://www.npmjs.com/package/@accede-web/accordion) - a dependency-free WAI-ARIA accordion plugin
 - [@accede-web/tablist](https://www.npmjs.com/package/@accede-web/tablist) - a dependency-free WAI-ARIA tab plugin
-- [@zthun/zidentifier.core](https://www.npmjs.com/package/@zthun/zidentifier.core) - generate namespaced IDs from nested paths
+- [posthtml-aria-tabs](https://www.npmjs.com/package/posthtml-aria-tabs) - a PostHTML plugin for creating accessible tabs with minimal markup
 
 # VERSION
 
