@@ -15,6 +15,8 @@
 // const fn = pipeline.start(includes)
 // const included = fn(el, id)
 
+// TODO replace this with an NPM module
+
 // FIXME can't get this to typecheck without pervasive hackery and guesswork
 type GenericFunction = (...args: Array<any>) => any;
 type Invoker<F extends GenericFunction> = (current: F, next: F, ...args) => ReturnType<F>;

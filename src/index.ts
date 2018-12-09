@@ -3,16 +3,16 @@ import EventEmitter from 'little-emitter'
 import nanoid       from 'nanoid/non-secure'
 import Pipeline     from './pipeline'
 
-// the `idrefs` option can be a function which augments the list rather than
+// the `idAttrs` option can be a function which augments the list rather than
 // replacing it
-type Idrefs = Iterable<string> | ((idrefs: Iterable<string>) => Iterable<string>)
+type IdAttrs = Iterable<string> | ((idAttrs: Iterable<string>) => Iterable<string>)
 
 // the object passed to `id` event handlers
-type Id = { name: string, value: string, next?: Include }
+type Id = { name: string, value: string, next?: Exclude }
 
 // a predicate which determines whether we accept (true) or reject (false) an ID
 // rewrite
-type Include = (HTMLElement, id: Id) => boolean
+type Exclude = (HTMLElement, id: Id) => boolean
 
 // a cache mapping unscoped IDs to their scoped (i.e. unique) replacements
 type Scope = { [key: string]: string }
@@ -24,10 +24,8 @@ const HASH_LENGTH = 16
 // the options optionally passed to a) the constructor, and b) the `scopeIds`
 // method
 type Options = {
-    idrefs?: Idrefs;
-    include?: Include;
-    prefix?: string;
-    scope?: Scope;
+    exclude?: Exclude;
+    idAttrs?: IdAttrs;
 }
 
 // the default list of attribute names we expect to find IDs in
@@ -36,7 +34,7 @@ type Options = {
 //
 // FIXME this isn't a complete list:
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes
-const DEFAULT_IDREFS = [
+const DEFAULT_ID_ATTRS = [
     'id',
     'aria-activedescendant',
     'aria-controls',
@@ -49,19 +47,16 @@ const DEFAULT_IDREFS = [
     'for'
 ]
 
-// the default string to prepend to all generated IDs i.e. their de-facto namespace
-//
-// XXX not sure about exposing this as a config option as it encourages
-// knowledge of and reliance on what should be an implementation detail
-const DEFAULT_PREFIX = 'scoped-id'
+// the string to prepend to all generated IDs i.e. their de-facto namespace
+const ID_PREFIX = 'scoped-id'
 
-// the base/fallback `include` predicate
-function defaultInclude (el: HTMLElement, { name }): boolean {
+// the base/fallback `exclude` predicate
+function defaultExclude (el: HTMLElement, { name }): boolean {
     if (name === 'for') {
         return el.tagName === 'LABEL'
     }
 
-    return true
+    return false
 }
 
 // instances of this class scope IDs within an element i.e. rewrite them to be
@@ -71,11 +66,9 @@ function defaultInclude (el: HTMLElement, { name }): boolean {
 // if the default options are fine, the `scopeIds` method can be called on a
 // default instance of this class via the exported `scopeIds` wrapper function
 export default class Scoper extends EventEmitter {
-    private idrefs: Iterable<string> // FIXME why doesn't Options['idrefs'] work here?
-    private includes: Array<Include>
-    private includer: Pipeline<Include>
-    private prefix: string // FIXME may be undefined if we use Options['prefix']
-    private scope: Scope | undefined
+    private idAttrs: Iterable<string> // FIXME why doesn't Options['idAttrs'] work here?
+    private exclusions: Array<Exclude>
+    private excluder: Pipeline<Exclude>
 
     // XXX these are here for CommonJS (because we get warnings and errors in
     // bundlers if we mix named and default exports (ESM) with CommonJS exports)
@@ -86,64 +79,50 @@ export default class Scoper extends EventEmitter {
         super()
 
         const options = _options || {}
-        const includes = [defaultInclude]
+        const exclusions = [defaultExclude]
 
-        if (options.include) {
-            includes.push(options.include)
+        if (options.exclude) {
+            exclusions.push(options.exclude)
         }
 
-        this.idrefs = this.getIdrefs(options.idrefs, DEFAULT_IDREFS)
-        this.includes = includes
-        this.scope = options.scope
+        this.idAttrs = this.getIdAttrs(options.idAttrs, DEFAULT_ID_ATTRS)
+        this.exclusions = exclusions
 
-        function invoker (current, next, el, id): boolean {
-            return current(el, { ...id, next })
+        function invoker (current, next, el, id): boolean | string {
+            return current(el, id, next)
         }
 
-        this.includer = new Pipeline(invoker, { defaultValue: true })
-
-        // make sure it's not an empty string
-        const prefix = (options.prefix || DEFAULT_PREFIX).trim()
-
-        if (prefix && /^[a-zA-z_]/.test(prefix)) {
-            this.prefix = prefix
-        } else {
-            const dump = JSON.stringify(prefix)
-            console.warn(`invalid prefix (${dump}): prefix must start with a character in the range /[a-zA-Z_]/`)
-            this.prefix = DEFAULT_PREFIX
-        }
+        this.excluder = new Pipeline(invoker, { defaultValue: true })
     }
 
     // scope the supplied ID by returning a replacement that's globally unique
-    private generateId (id: string, prefix: string): string {
-        return `${prefix}-${id}-${nanoid(HASH_LENGTH)}`
+    private generateId (id: string): string {
+        return `${ID_PREFIX}-${id}-${nanoid(HASH_LENGTH)}`
     }
 
     // returns the list (e.g. array) of attribute names which are examined for IDs.
     // may be overridden (via a function), in which case we pass the (cloned)
     // default list as a parameter so that it can be modified or augmented
-    private getIdrefs (idrefs: Idrefs | undefined, baseIdrefs: Iterable<string>): Iterable<string> {
-        if (typeof idrefs === 'function') {
-            const clone = [...baseIdrefs]
-            idrefs = idrefs(clone)
+    private getIdAttrs (idAttrs: IdAttrs | undefined, baseIdAttrs: Iterable<string>): Iterable<string> {
+        if (typeof idAttrs === 'function') {
+            const clone = [...baseIdAttrs]
+            idAttrs = idAttrs(clone)
         }
 
-        return idrefs || baseIdrefs
+        return idAttrs || baseIdAttrs
     }
 
-    // replace IDs in the supplied element (i.e. not in its descendants) with
-    // their scoped (i.e. globally unique) versions.
+    // the guts of the (shared) `scopeOwnId` method
     //
-    // returns the element for chaining
-    scopeOwnIds<T extends HTMLElement>(element: T, _options?: Options): T {
+    // unlike the public version, this takes an internal `scope` parameter which
+    // is used to keep track of old-name -> new-name mappings
+    private _scopeOwnIds<T extends HTMLElement>(element: T, scope: Scope, _options?: Options): T {
         const options = _options || {}
-        const idrefs = this.getIdrefs(options.idrefs, this.idrefs)
-        const includes = options.include ? this.includes.concat(options.include) : this.includes
-        const prefix = options.prefix || this.prefix
-        const scope = options.scope || this.scope || {}
+        const idAttrs = this.getIdAttrs(options.idAttrs, this.idAttrs)
+        const exclusions = options.exclude ? this.exclusions.concat(options.exclude) : this.exclusions
         const deltas = {}
 
-        for (const name of idrefs) {
+        for (const name of idAttrs) {
             const oldIds = (element.getAttribute(name) || '').trim()
 
             if (!oldIds) {
@@ -151,22 +130,20 @@ export default class Scoper extends EventEmitter {
             }
 
             const mapped = oldIds.split(/\s+/).flatMap(id => {
-                const include = this.includer.start(includes)
+                const exclude = this.excluder.start(exclusions)
 
-                if (!include(element, { name, value: id })) {
+                if (!exclude(element, { name, value: id })) {
                     return []
                 }
 
                 let cached = scope[id]
 
                 if (!cached) {
-                    const newId = this.generateId(id, prefix)
+                    const newId = this.generateId(id)
 
                     cached = scope[id] = newId
 
                     // translated IDs should not be recycled in this scope
-                    // (which may be a global scope if a scope option was passed
-                    // to the constructor)
                     scope[newId] = newId
                 }
 
@@ -194,33 +171,36 @@ export default class Scoper extends EventEmitter {
         return element
     }
 
-    // replace IDs in descendants of the supplied element (e.g. "summary-panel")
+    // replace IDs in the supplied element (i.e. not in its descendants) with
+    // their scoped (i.e. globally unique) versions.
+    //
+    // returns the element for chaining
+    scopeOwnIds<T extends HTMLElement>(element: T, options?: Options): T {
+        return this._scopeOwnIds(element, {}, options)
+    }
+
+    // replace IDs in descendants of the supplied element (e.g. "foo-panel")
     // with scoped versions by making them globally unique (e.g.
-    // "scoped-id-summary-panel-abc123")
+    // "scoped-id-foo-panel-123")
     //
     // returns the element for chaining
     public scopeIds<T extends HTMLElement>(element: T, _options?: Options): T {
         let options = _options || {}
 
-        const idrefs = this.getIdrefs(options.idrefs, this.idrefs)
-        const scope = options.scope || this.scope || {}
+        const idAttrs = this.getIdAttrs(options.idAttrs, this.idAttrs)
+        const scope = {}
 
-        // if there's a new/different scope, merge it into the options
-        if (scope !== options.scope) {
-            options = { ...options, scope }
+        // merge in the resolved idAttrs: we don't need to keep resolving them
+        // if `idAttrs` is a callback
+        if (typeof options.idAttrs === 'function') {
+            options = { ...options, idAttrs }
         }
 
-        // merge in the resolved idrefs: we don't need to keep resolving them
-        // if `idrefs` is a callback
-        if (typeof options.idrefs === 'function') {
-            options = { ...options, idrefs }
-        }
-
-        const selector = Array.from(idrefs).map(name => `[${name}]`).join(', ')
+        const selector = Array.from(idAttrs).map(name => `[${name}]`).join(', ')
         const descendants = element.querySelectorAll(selector) as NodeListOf<HTMLElement>
 
         for (const descendant of descendants) {
-            this.scopeOwnIds(descendant, options)
+            this._scopeOwnIds(descendant, scope, options)
         }
 
         return element

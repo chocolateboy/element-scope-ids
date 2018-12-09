@@ -9,18 +9,16 @@
 - [DESCRIPTION](#description)
 - [WHY?](#why)
 - [TYPES](#types)
-  - [Idrefs](#type-idrefs)
+  - [IdAttrs](#type-idattrs)
   - [Options](#type-options)
-  - [Scope](#type-scope)
 - [EXPORTS](#exports)
   - [Scoper (default)](#scoper-class)
     - [Events](#events)
       - [id](#id)
       - [ids](#ids)
     - [Options](#options)
-      - [idrefs](#idrefs)
-      - [include](#include)
-      - [prefix](#prefix)
+      - [exclude](#exclude)
+      - [idAttrs](#idattrs)
     - [Methods](#methods)
       - [scopeIds](#scope-ids-method)
       - [scopeOwnIds](#scope-own-ids-method)
@@ -74,11 +72,11 @@ for (const el of document.querySelectorAll('.tabs')) {
 ```html
 <div class="tabs">
     <ul role="tablist">
-        <li id="foo-tab-abc123" role="tab" aria-controls="foo-panel-bcd234">Foo</li>
-        <li id="bar-tab-cde345" role="tab" aria-controls="bar-panel-def456">Bar</li>
+        <li id="foo-tab-123" role="tab" aria-controls="foo-panel-234">Foo</li>
+        <li id="bar-tab-345" role="tab" aria-controls="bar-panel-456">Bar</li>
     </ul>
-    <div id="foo-panel-bcd234" role="tabpanel">...</div>
-    <div id="bar-panel-def456" role-"tabpanel">...</div>
+    <div id="foo-panel-234" role="tabpanel">...</div>
+    <div id="bar-panel-456" role-"tabpanel">...</div>
 </div>
 ```
 
@@ -96,40 +94,37 @@ IDs are the natural way to declare relationships between elements in various HTM
 
 - [accordions](https://www.w3.org/TR/wai-aria-practices/#accordion) and
   [tabs](https://www.w3.org/TR/wai-aria-practices/#tabpanel)
-  (e.g. [aria-controls](https://www.w3.org/TR/wai-aria/#aria-controls) and
-  [aria-labelledby](https://www.w3.org/TR/wai-aria/#aria-labelledby))
-- labeled form elements ([for](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/label#Attributes))
+  (e.g. [`aria-controls`](https://www.w3.org/TR/wai-aria/#aria-controls) and
+  [`aria-labelledby`](https://www.w3.org/TR/wai-aria/#aria-labelledby))
+- labeled form elements ([`for`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/label#Attributes))
 
-This approach works well if the IDs are unique — e.g. if there's only one accordion or form on a
-page — but quickly becomes cumbersome in situations where there's more than one such component,
-e.g. in SPAs where typically many such components may be embedded in the DOM at the same time.
+This approach works well for simple, static pages — e.g. if there's only one accordion or form on
+a page — but quickly becomes cumbersome in situations where there's more than one such component,
+e.g. in SPAs where many components of the same type may be embedded in the DOM at the same time.
 It can also be tedious and error prone even in multi-page apps simply because IDs are names, and
-[naming things is hard](https://martinfowler.com/bliki/TwoHardThings.html): componentization
-and other abstractions can make it difficult to keep track of which IDs are safe to use where, and this
-can be compounded in apps which pull in third-party components/markup.
+[naming things is hard](https://martinfowler.com/bliki/TwoHardThings.html): decomposing
+a page into reusable components can make it difficult to keep track of which IDs are safe to use
+where, and this can be compounded in apps which pull in third-party components.
 
-One solution to this is to use another attribute e.g. `data-id`. But this doesn't work
-for ARIA/form elements, which were specced with plain old IDs in mind, and effort must still be
-expended to manually namespace names to avoid collisions. In the case of ARIA widgets and labelled
-form elements, these attributes will still need to be translated to `id` attributes with the same
-values, so this does little more than shift the problem sideways.
+One solution is to use another attribute e.g. `data-id`, but these remain unique IDs in everything
+but name, and they still need to be translated back into actual IDs for ARIA/form elements etc.,
+so this does little more than move the problem sideways.
 
-Rather than trying to migrate every codebase and library which uses IDs to the sticking plaster
-of using a different attribute with the same drawbacks, a simpler solution is to make IDs
-<abbr title="Do What We Mean">DWWM</abbr> by automagically scoping (i.e. namespacing/renaming)
-them, in the same way that scoped CSS — and scoped (i.e. local) variables — make components easy
-to name and safe to compose.
+A better solution is to keep using IDs but to make them safe to compose and reuse — in the
+same manner as class names in scoped CSS (and local variable names in most programming
+languages). This is done by making each ID globally unique (with an escape hatch for
+shared/global IDs).
 
 # TYPES
 
 The following types are referenced in the descriptions below:
 
-## Idrefs <a name="type-idrefs"></a>
+## IdAttrs <a name="type-idattrs"></a>
 
 An array of attribute names to look for IDs in or a function which returns the names.
 
 ```typescript
-type Idrefs = Iterable<string> | (idrefs: Iterable<string>) => Iterable<string>
+type IdAttrs = Iterable<string> | (idAttrs: Iterable<string>) => Iterable<string>
 ```
 
 ## Options <a name="type-options"></a>
@@ -139,19 +134,9 @@ and its [`scopeIds`](#scope-ids-method) and [`scopeOwnIds`](#scope-own-ids-metho
 
 ```typescript
 type Options = {
-    idrefs?: Idrefs;
-    include?: (HTMLElement, id: { name: string, value: string }) => boolean;
-    prefix?: string;
+    exclude?: (HTMLElement, id: { name: string, value: string }, next: (typeof exclude)) => boolean | string;
+    idAttrs?: IdAttrs;
 }
-```
-
-## Scope <a name="type-scope"></a>
-
-A scope is a mapping from old ID names to their new (unique) names which is populated when
-the IDs in an element or its descendants are replaced.
-
-```typescript
-type Scope = { [key: string]: string }
 ```
 
 # EXPORTS
@@ -218,9 +203,48 @@ scoper.on('ids', (element, ids) => {
 
 The constructor takes an optional [Options](#type-options) object with the following (optional) fields:
 
-#### idrefs
+#### exclude
 
-**Type**: [Idrefs](#type-idrefs)
+**Type**: (el: HTMLElement, id: { name: string, value: string }, next: (typeof exclude)) → boolean | string
+
+A function which is used to prevent an ID being scoped. Called once for each ID in each ID-like attribute
+(as defined by [`idAttrs`](#idattrs)) in each target element. If supplied, the function can veto scoping
+(i.e. renaming) the ID by returning true. Alternatively, it can veto scoping by returning a replacement ID.
+
+The `next` value in the final parameter is a reference to the default `exclude` function.
+There can be up to three `exclude` functions (built-in, constructor option, method option)
+and each one after the built-in can delegate to the one it's overriding, passing the decision
+back from the method option (if supplied) to the constructor option (if supplied) to the
+default implementation.
+
+If the `next` function is called with no arguments, it is passed the original arguments. Otherwise
+the supplied arguments are passed to the previous `exclude`.
+
+```javascript
+const scoper = new Scoper({
+    exclude (element, id, next) {
+        // next() (no arguments) is the same as next(...arguments)
+        return (element.dataset.scopeIds || '') === 'false' ? true : next()
+    }
+})
+```
+
+`exclude` can be used to filter by type e.g. the default implementation restricts the `for`
+attribute to LABEL elements:
+
+```javascript
+const scoper = new Scoper({
+    exclude (element, id, next) {
+        return id.name === 'for' ? element.tagName !== 'LABEL' : next()
+    }
+})
+```
+
+It can also be used to [exclude global IDs](#exclude-global-ids).
+
+#### idAttrs
+
+**Type**: [IdAttrs](#idattrs)
 
 A list (e.g. array) of attribute names to treat as "ID-like" i.e. the names of attributes IDs should be replaced in.
 
@@ -229,82 +253,11 @@ The function's return value is used as the new list:
 
 ```javascript
 const scoper = new Scoper({
-    idrefs (defaultIdrefs) {
-        return defaultIdrefs.concat(['contextmenu'])
+    idAttrs (defaultIdAttrs) {
+        return defaultIdAttrs.concat(['contextmenu'])
     }
 })
 ```
-
-#### include
-
-**Type**: (el: HTMLElement, { name: string, value: string, next: (typeof include) }) → boolean
-
-A function which is used to exclude attributes from substitution. Called for every
-ID-like attribute in every target element. If supplied, the function can veto
-replacing the ID(s) by returning false. Can be used to filter by type e.g. the default
-implementation restricts the `for` attribute to LABEL elements:
-
-```javascript
-const scoper = new Scoper({
-    include (element, attr) {
-        return attr.name === 'for' ? element.tagName === 'LABEL' : true
-    }
-})
-```
-
-The `next` value in the second parameter is a reference to the default `include` function.
-There can be up to three `include` functions (built-in, constructor option, method option)
-and each one after the built-in can delegate to the one it's overriding e.g. passing the decision
-back from the method option to the constructor option (if supplied) or default implementation.
-
-If the `next` function is called with no arguments, it is passed the original arguments. Otherwise
-the supplied arguments are passed to the previous `include`.
-
-```javascript
-const scoper = new Scoper({
-    include (element, { name, value, next }) {
-        // next() (no arguments) is the same as next(...arguments)
-        return (element.dataset.scopeIds || '') === 'false' ? false : next()
-    }
-})
-```
-
-#### prefix
-
-**Type**: string, default: "scoped-id"
-
-The prefix to prepend to generated IDs. Must begin with a letter or an underscore; otherwise,
-a warning is logged to the console and the default value is used instead.
-
-```javascript
-const scoper = new Scoper({ prefix: 'my-id' })
-```
-
-**before**:
-
-```html
-<div id="foo">
-    <span id="bar">Bar</span>
-</div>
-```
-
-**after**:
-
-```html
-<div id="my-id-foo-abc123">
-    <span id="my-id-bar-xyz321">Bar</span>
-</div>
-```
-
-#### scope
-
-A [Scope](#type-scope) object to read from and write to during the course of a [`scopeIds`](#scope-ids-method)
-or [`scopeOwnIds`](#scope-own-ids-method) method call.
-
-This is an advanced option which can be used to coordinate ID sharing/reuse (and prevent IDs being re-mapped)
-across different components, or even globally if supplied as an option to the constructor.
-
-If not supplied, a new scope is created for each method call.
 
 ### Methods
 
@@ -353,7 +306,7 @@ import Scoper from 'element-scope-ids'
 const scoper = new Scoper()
 
 for (const el of document.querySelectorAll('.tabs')) {
-    scoper.scopeIds(el, { prefix: 'my-ids' })
+    scoper.scopeIds(el)
 }
 ```
 
@@ -371,7 +324,7 @@ Uses the same default instance of the Scoper class as [`scopeIds`](#scope-ids-fu
 ## Debugging
 
 To log what IDs have been changed where, intercept one of the [events](#events)
-(to veto a change, see [`include`](#include)) e.g.:
+(to veto a change, see [`exclude`](#exclude)) e.g.:
 
 ```javascript
 const scoper = new Scoper()
@@ -379,34 +332,33 @@ const scoper = new Scoper()
 scoper.on('id', (element, id) => {
     console.log(`${element.tagName}[${id.name}]: ${id.old} => ${id.new}`)
 })
-
 ```
 
 ## Exclude global IDs
 
-This can be done by passing in a [scope](#scope) object. The scope is
-effectively a cache which maps the original ID name to its new value,
-so we can prevent rewrites by prepopulating the cache with global IDs
-which map to themselves:
+This can be done by supplying an [`exclude`](#exclude) constructor/method
+option which identifies and optionally transforms global IDs e.g.:
 
 ```javascript
-for (const el of document.querySelectorAll('[data-preserve-ids]')) {
-    const preserve = (el.dataset.preserveIds || '').trim().split(/\s+/)
+function isGlobal (el, { value }, next) {
+    return (value && value[0] === '/') ? value.substr(1) : next()
+}
 
-    // map each ID to itself: { "foo": "foo", "bar": "bar", ... }
-    const scope = preserve.reduce((scope, name) => (scope[name] = name, scope))
+const scoper = new Scoper({ exclude: isGlobal })
 
-    scopeIds(el, { scope })
+for (const el of document.querySelectorAll('[data-scope-ids="true"]')) {
+    scoper.scopeIds(el)
+    el.setAttribute('data-scope-ids', 'done')
 }
 ```
 
 **before**:
 
 ```html
-<div data-preserve-ids="bar baz">
+<div data-scope-ids"true">
     <span id="foo"></span>
-    <span id="bar"></span>
-    <span id="baz"></span>
+    <span id="/bar"></span>
+    <span id="/baz"></span>
     <span id="quux"></span>
 </div>
 ```
@@ -414,11 +366,11 @@ for (const el of document.querySelectorAll('[data-preserve-ids]')) {
 **after**:
 
 ```html
-<div data-preserve-ids="bar baz">
-    <span id="foo-abc123"></span>
+<div data-scope-ids="done">
+    <span id="foo-123"></span>
     <span id="bar"></span>
     <span id="baz"></span>
-    <span id="quux-xyz321"></span>
+    <span id="quux-234"></span>
 </div>
 ```
 
@@ -478,6 +430,10 @@ The following NPM scripts are available:
 - [@accede-web/accordion](https://www.npmjs.com/package/@accede-web/accordion) - a dependency-free WAI-ARIA accordion plugin
 - [@accede-web/tablist](https://www.npmjs.com/package/@accede-web/tablist) - a dependency-free WAI-ARIA tab plugin
 - [posthtml-aria-tabs](https://www.npmjs.com/package/posthtml-aria-tabs) - a PostHTML plugin for creating accessible tabs with minimal markup
+
+## Scoped CSS
+
+- [CSS Modules](https://github.com/css-modules/css-modules)
 
 # VERSION
 

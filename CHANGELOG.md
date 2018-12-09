@@ -1,3 +1,15 @@
+## 0.1.0 - TBD
+
+- **Breaking changes**
+  - remove the `scope` option
+  - remove the `prefix` option
+  - rename `idrefs` -> `idAttrs`
+  - rename `include` (default: true) -> `exclude` (default: false)
+
+- `exclude` can now return a string as its truthy value representing
+  the replacement name for the ID (e.g. for globals)
+- re-remove `require`s from the ESM build
+
 ## 0.0.3 - 2019-01-07
 
 - remove `require`s from the ESM build
