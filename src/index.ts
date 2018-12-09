@@ -1,5 +1,5 @@
+import 'core-js/fn/array/flat-map'
 import EventEmitter from 'little-emitter'
-import flatMap      from 'lodash/flatMap' // FIXME this is in ES201? and core-js
 import nanoid       from 'nanoid/non-secure'
 import Pipeline     from './pipeline'
 
@@ -150,7 +150,7 @@ export default class Scoper extends EventEmitter {
                 continue
             }
 
-            const mapped = flatMap(oldIds.split(/\s+/), id => {
+            const mapped = oldIds.split(/\s+/).flatMap(id => {
                 const include = this.includer.start(includes)
 
                 if (!include(element, { name, value: id })) {
@@ -172,7 +172,7 @@ export default class Scoper extends EventEmitter {
 
                 this.emit('id', element, { name, old: id, 'new': cached })
 
-                return cached
+                return [cached]
             })
 
             const newIds = mapped.join(' ')

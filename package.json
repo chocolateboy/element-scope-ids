@@ -24,7 +24,6 @@
     "dependencies": {
         "core-js": "^2.5.7",
         "little-emitter": "~0.2.0",
-        "lodash": "^4.17.11",
         "nanoid": "^2.0.0"
     },
     "devDependencies": {
