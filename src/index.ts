@@ -1,10 +1,8 @@
-import { EventEmitter } from 'events'
-import Pipeline         from './pipeline'
+import Pipeline from './pipeline'
 
-// FIXME workaround "Error: 'default' is not exported by node_modules/..." errors
-// in rollup
-const nanoid = require('nanoid/non-secure')
+const EventEmitter = require('events')
 const flatMap = require('lodash.flatmap') // FIXME this is in ES201? and core-js
+const nanoid = require('nanoid/non-secure')
 
 // the `idrefs` option can be a function which augments the list rather than
 // replacing it

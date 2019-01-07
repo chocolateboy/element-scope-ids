@@ -1,6 +1,6 @@
 {
     "name": "element-scope-ids",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "scope IDs to an element by rewriting them to be globally unique",
     "repository": "chocolateboy/element-scope-ids",
     "author": "chocolateboy",
@@ -34,6 +34,7 @@
     "devDependencies": {
         "@babel/core": "^7.1.6",
         "@babel/preset-env": "^7.1.6",
+        "@types/node": "^10.12.18",
         "rollup": "^0.67.3",
         "rollup-plugin-babel": "^4.0.3",
         "shx": "^0.3.2",
