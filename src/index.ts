@@ -1,8 +1,7 @@
-import Pipeline from './pipeline'
-
-const EventEmitter = require('events')
-const flatMap = require('lodash.flatmap') // FIXME this is in ES201? and core-js
-const nanoid = require('nanoid/non-secure')
+import EventEmitter from 'little-emitter'
+import flatMap      from 'lodash/flatMap' // FIXME this is in ES201? and core-js
+import nanoid       from 'nanoid/non-secure'
+import Pipeline     from './pipeline'
 
 // the `idrefs` option can be a function which augments the list rather than
 // replacing it
@@ -71,8 +70,6 @@ function defaultInclude (el: HTMLElement, { name }): boolean {
 // the main reason to instantiate this is to register event listeners. otherwise,
 // if the default options are fine, the `scopeIds` method can be called on a
 // default instance of this class via the exported `scopeIds` wrapper function
-//
-// TODO replace events.EventEmitter with a (lightweight) mixin
 export default class Scoper extends EventEmitter {
     private idrefs: Iterable<string> // FIXME why doesn't Options['idrefs'] work here?
     private includes: Array<Include>
