@@ -1,4 +1,4 @@
-## 0.1.0 - TBD
+## 0.1.0 - 2019-01-10
 
 - **Breaking changes**
   - remove the `scope` option
@@ -8,10 +8,6 @@
 
 - `exclude` can now return a string as its truthy value, representing
   the replacement name for the ID (e.g. for globals)
-- re-remove `require`s from the ESM build
-
-## 0.0.3 - 2019-01-07
-
 - remove `require`s from the ESM build
 - shrink the event-emitter dependency
 - build: migrate from rollup -> microbundle

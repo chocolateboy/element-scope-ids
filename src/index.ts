@@ -1,3 +1,5 @@
+/// <reference path="./types.d.ts" />
+
 import 'core-js/fn/array/flat-map'
 import EventEmitter from 'little-emitter'
 import nanoid       from 'nanoid/non-secure'

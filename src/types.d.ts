@@ -35,7 +35,7 @@ declare module 'little-emitter' {
 //
 // [1] https://www.npmjs.com/package/@types/nanoid
 //
-// TODO add to DefinitelyTypes or nanoid
+// TODO add to DefinitelyTyped or nanoid
 declare module 'nanoid/non-secure' {
     function nanoid (size?: number): string;
     export = nanoid;

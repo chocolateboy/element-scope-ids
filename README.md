@@ -437,7 +437,7 @@ The following NPM scripts are available:
 
 # VERSION
 
-0.0.3
+0.1.0
 
 # AUTHOR
 
@@ -445,7 +445,7 @@ The following NPM scripts are available:
 
 # COPYRIGHT AND LICENSE
 
-Copyright © 2018 by chocolateboy.
+Copyright © 2018-2019 by chocolateboy.
 
 This is free software; you can redistribute it and/or modify it under the
 terms of the [Artistic License 2.0](http://www.opensource.org/licenses/artistic-license-2.0.php).

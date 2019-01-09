@@ -12,10 +12,10 @@
         "dist/types.d.ts"
     ],
     "scripts": {
-        "build": "npm run build:cjs && npm run build:esm && npm run build:types",
+        "build": "npm run build:cjs && npm run build:esm && npm run bundle:types",
         "build:cjs": "microbundle --no-compress --strict --format cjs src/index.cjs.ts",
         "build:esm": "microbundle --no-compress --strict --format es src/index.ts",
-        "build:types": "shx cp src/types.d.ts ./dist/",
+        "bundle:types": "shx cp src/types.d.ts ./dist/",
         "clean": "shx rm -rf ./dist ./.*cache*",
         "prepublishOnly": "npm run clean && npm run test",
         "test": "npm run build && node ./test.js"
