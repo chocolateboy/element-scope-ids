@@ -1,17 +1,21 @@
 {
     "name": "element-scope-ids",
-    "version": "0.0.3",
+    "version": "0.1.0",
     "description": "scope IDs to an element by rewriting them to be globally unique",
     "repository": "chocolateboy/element-scope-ids",
     "author": "chocolateboy",
     "license": "Artistic-2.0",
     "main": "dist/index.js",
     "module": "dist/index.mjs",
-    "types": "dist/index.d.ts",
+    "types": [
+        "dist/index.d.ts",
+        "dist/types.d.ts"
+    ],
     "scripts": {
-        "build": "npm run build:cjs && npm run build:esm",
+        "build": "npm run build:cjs && npm run build:esm && npm run build:types",
         "build:cjs": "microbundle --no-compress --strict --format cjs src/index.cjs.ts",
         "build:esm": "microbundle --no-compress --strict --format es src/index.ts",
+        "build:types": "shx cp src/types.d.ts ./dist/",
         "clean": "shx rm -rf ./dist ./.*cache*",
         "prepublishOnly": "npm run clean && npm run test",
         "test": "npm run build && node ./test.js"
@@ -19,7 +23,10 @@
     "files": [
         "dist/index.d.ts",
         "dist/index.js",
-        "dist/index.mjs"
+        "dist/index.js.map",
+        "dist/index.mjs",
+        "dist/index.mjs.map",
+        "dist/types.d.ts"
     ],
     "dependencies": {
         "core-js": "^2.5.7",
@@ -29,8 +36,6 @@
     "devDependencies": {
         "@babel/core": "^7.1.6",
         "@babel/preset-env": "^7.1.6",
-        "@types/lodash": "^4.14.119",
-        "@types/node": "^10.12.18",
         "microbundle": "^0.9.0",
         "shx": "^0.3.2",
         "typescript": "^3.1.6"

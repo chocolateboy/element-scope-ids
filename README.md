@@ -121,7 +121,7 @@ The following types are referenced in the descriptions below:
 
 ## IdAttrs <a name="type-idattrs"></a>
 
-An array of attribute names to look for IDs in or a function which returns the names.
+An array (or other iterable collection) of attribute names to look for IDs in or a function which returns the names.
 
 ```typescript
 type IdAttrs = Iterable<string> | (idAttrs: Iterable<string>) => Iterable<string>

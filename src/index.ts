@@ -1,18 +1,26 @@
 import 'core-js/fn/array/flat-map'
 import EventEmitter from 'little-emitter'
 import nanoid       from 'nanoid/non-secure'
-import Pipeline     from './pipeline'
 
-// the `idAttrs` option can be a function which augments the list rather than
-// replacing it
-type IdAttrs = Iterable<string> | ((idAttrs: Iterable<string>) => Iterable<string>)
+// an object which logs the changes made to an element's ID attributes. passed
+// as a parameter to `ids` event listeners.
+//
+// each key is an attribute name (e.g. `id` or `aria-controls`), and each value
+// is a before/after (new/old) pair for the attribute's value (string)
+type Deltas = { [name: string]: { old: string, 'new': string } }
 
-// the object passed to `id` event handlers
-type Id = { name: string, value: string, next?: Exclude }
-
-// a predicate which determines whether we accept (true) or reject (false) an ID
+// a predicate which determines whether we reject (true) or accept (false) an ID
 // rewrite
-type Exclude = (HTMLElement, id: Id) => boolean
+type Exclude = (el: HTMLElement, idAttr: IdAttr, next?: Exclude) => boolean | string
+
+// an object passed to `id` event handlers which represents an element's modified
+// ID attribute
+type IdAttr = { name: string, value: string, next?: Exclude }
+
+// a collection (e.g. array) of strings representing attribute names whose
+// values are IDs. can be a function which augments or overrides the default
+// collection
+type IdAttrs = Iterable<string> | ((idAttrs: Iterable<string>) => Iterable<string>)
 
 // a cache mapping unscoped IDs to their scoped (i.e. unique) replacements
 type Scope = { [key: string]: string }
@@ -21,8 +29,7 @@ type Scope = { [key: string]: string }
 // https://alex7kom.github.io/nano-nanoid-cc/
 const HASH_LENGTH = 16
 
-// the options optionally passed to a) the constructor, and b) the `scopeIds`
-// method
+// options passed to a) the constructor, and b) the `scopeIds` method
 type Options = {
     exclude?: Exclude;
     idAttrs?: IdAttrs;
@@ -51,12 +58,74 @@ const DEFAULT_ID_ATTRS = [
 const ID_PREFIX = 'scoped-id'
 
 // the base/fallback `exclude` predicate
-function defaultExclude (el: HTMLElement, { name }): boolean {
-    if (name === 'for') {
+function defaultExclude (el: HTMLElement, idAttr: IdAttr): boolean {
+    if (idAttr.name === 'for') {
         return el.tagName === 'LABEL'
     }
 
     return false
+}
+
+// scope the supplied ID by returning a replacement that's globally unique
+function generateId (id: string): string {
+    const hash = nanoid(HASH_LENGTH)
+    return `${ID_PREFIX}-${id}-${hash}`
+}
+
+// the `exclude` predicate is a function which takes a candidate element and an
+// ID attribute and returns true if the ID change should be vetoed (i.e. excluded),
+// false otherwise.
+//
+// there are up to 3 exclude predicates that can be consulted: a default
+// (defaultExclude), a predicate passed to the Scoper constructor, and an override
+// passed to the scoping method
+//
+// each predicate can delegate to its previous/parent predicate e.g. the
+// method predicate can delegate to the constructor predicate and the
+// constructor predicate can delegate to the default predicate.
+//
+// delegation is handled by passing a `next` parameter into the function,
+// similar to the way it's done for "middleware" in Express or Koa
+//
+// this function takes a base `exclude` predicate and an optional override and
+// returns a function which handles the delegation correctly, injecting a suitable
+// `next` function. if the `next` function is called with no arguments, it has
+// the same effect as calling it with the arguments passed to the previous
+// function in the chain
+//
+// see also:
+//
+//   - https://github.com/koajs/compose
+//   - https://github.com/JeffRMoore/brigade
+//   - https://gist.github.com/darrenscerri/5c3b3dcbe4d370435cfa
+function getExclude (base: Exclude, override?: Exclude): Exclude {
+    if (!override) {
+        return base
+    }
+
+    return function (el: HTMLElement, idAttr: IdAttr): boolean | string {
+        function next ($el: HTMLElement, $idAttr: IdAttr): boolean | string {
+            if (arguments.length === 0) {
+                return base(el, idAttr) // original args
+            } else {
+                return base($el, $idAttr) // overridden args
+            }
+        }
+
+        return override(el, idAttr, next)
+    }
+}
+
+// returns the list (e.g. array) of attribute names which are examined for IDs.
+// may be overridden (via a function), in which case we pass the (cloned)
+// default list as a parameter so that it can be modified or augmented
+function getIdAttrs (idAttrs: (IdAttrs | undefined), baseIdAttrs: Iterable<string>): Iterable<string> {
+    if (typeof idAttrs === 'function') {
+        const clone = [...baseIdAttrs]
+        idAttrs = idAttrs(clone)
+    }
+
+    return idAttrs || baseIdAttrs
 }
 
 // instances of this class scope IDs within an element i.e. rewrite them to be
@@ -66,61 +135,27 @@ function defaultExclude (el: HTMLElement, { name }): boolean {
 // if the default options are fine, the `scopeIds` method can be called on a
 // default instance of this class via the exported `scopeIds` wrapper function
 export default class Scoper extends EventEmitter {
-    private idAttrs: Iterable<string> // FIXME why doesn't Options['idAttrs'] work here?
-    private exclusions: Array<Exclude>
-    private excluder: Pipeline<Exclude>
-
-    // XXX these are here for CommonJS (because we get warnings and errors in
-    // bundlers if we mix named and default exports (ESM) with CommonJS exports)
-    static scopeIds = scopeIds
-    static scopeOwnIds = scopeOwnIds
+    private exclude: Exclude
+    private idAttrs: Iterable<string>
 
     constructor (_options?: Options) {
         super()
 
         const options = _options || {}
-        const exclusions = [defaultExclude]
 
-        if (options.exclude) {
-            exclusions.push(options.exclude)
-        }
-
-        this.idAttrs = this.getIdAttrs(options.idAttrs, DEFAULT_ID_ATTRS)
-        this.exclusions = exclusions
-
-        function invoker (current, next, el, id): boolean | string {
-            return current(el, id, next)
-        }
-
-        this.excluder = new Pipeline(invoker, { defaultValue: true })
+        this.exclude = getExclude(defaultExclude, options.exclude)
+        this.idAttrs = getIdAttrs(options.idAttrs, DEFAULT_ID_ATTRS)
     }
 
-    // scope the supplied ID by returning a replacement that's globally unique
-    private generateId (id: string): string {
-        return `${ID_PREFIX}-${id}-${nanoid(HASH_LENGTH)}`
-    }
-
-    // returns the list (e.g. array) of attribute names which are examined for IDs.
-    // may be overridden (via a function), in which case we pass the (cloned)
-    // default list as a parameter so that it can be modified or augmented
-    private getIdAttrs (idAttrs: IdAttrs | undefined, baseIdAttrs: Iterable<string>): Iterable<string> {
-        if (typeof idAttrs === 'function') {
-            const clone = [...baseIdAttrs]
-            idAttrs = idAttrs(clone)
-        }
-
-        return idAttrs || baseIdAttrs
-    }
-
-    // the guts of the (shared) `scopeOwnId` method
+    // the guts of the public scoping methods
     //
-    // unlike the public version, this takes an internal `scope` parameter which
+    // unlike the public versions, this takes an internal `scope` parameter which
     // is used to keep track of old-name -> new-name mappings
     private _scopeOwnIds<T extends HTMLElement>(element: T, scope: Scope, _options?: Options): T {
         const options = _options || {}
-        const idAttrs = this.getIdAttrs(options.idAttrs, this.idAttrs)
-        const exclusions = options.exclude ? this.exclusions.concat(options.exclude) : this.exclusions
-        const deltas = {}
+        const exclude = getExclude(this.exclude, options.exclude)
+        const idAttrs = getIdAttrs(options.idAttrs, this.idAttrs)
+        const deltas: Deltas = {}
 
         for (const name of idAttrs) {
             const oldIds = (element.getAttribute(name) || '').trim()
@@ -130,16 +165,20 @@ export default class Scoper extends EventEmitter {
             }
 
             const mapped = oldIds.split(/\s+/).flatMap(id => {
-                const exclude = this.excluder.start(exclusions)
+                const $exclude = exclude(element, { name, value: id })
 
-                if (!exclude(element, { name, value: id })) {
-                    return []
+                if ($exclude) {
+                    if (typeof $exclude === 'string') {
+                        return [$exclude]
+                    } else {
+                        return [id]
+                    }
                 }
 
                 let cached = scope[id]
 
                 if (!cached) {
-                    const newId = this.generateId(id)
+                    const newId = generateId(id)
 
                     cached = scope[id] = newId
 
@@ -187,7 +226,7 @@ export default class Scoper extends EventEmitter {
     public scopeIds<T extends HTMLElement>(element: T, _options?: Options): T {
         let options = _options || {}
 
-        const idAttrs = this.getIdAttrs(options.idAttrs, this.idAttrs)
+        const idAttrs = getIdAttrs(options.idAttrs, this.idAttrs)
         const scope = {}
 
         // merge in the resolved idAttrs: we don't need to keep resolving them
