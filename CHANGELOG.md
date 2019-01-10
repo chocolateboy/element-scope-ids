@@ -1,3 +1,8 @@
+## 0.1.1 - 2019-01-10
+
+- types: fix (remove) broken reference path
+- fix pkg.types: array -> string
+
 ## 0.1.0 - 2019-01-10
 
 - **Breaking changes**

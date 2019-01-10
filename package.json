@@ -1,16 +1,13 @@
 {
     "name": "element-scope-ids",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "scope IDs to an element by rewriting them to be globally unique",
     "repository": "chocolateboy/element-scope-ids",
     "author": "chocolateboy",
     "license": "Artistic-2.0",
     "main": "dist/index.js",
     "module": "dist/index.mjs",
-    "types": [
-        "dist/index.d.ts",
-        "dist/types.d.ts"
-    ],
+    "types": "dist/index.d.ts",
     "scripts": {
         "build": "npm run build:cjs && npm run build:esm && npm run bundle:types",
         "build:cjs": "microbundle --no-compress --strict --format cjs src/index.cjs.ts",
