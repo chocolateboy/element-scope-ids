@@ -173,7 +173,7 @@ events are supported:
 **Type**: (el: HTMLElement, { name: string, old: string, new: string }) → void
 
 Fired each time an ID-like attribute is changed. As well as the `id` attribute itself, this also includes
-ARIA attributes such as `aria-controls` and the `for` attribute on LABEL elements. The handler is passed
+ARIA attributes such as `aria-controls` and the `for` attribute on LABEL elements. The listener is passed
 the element and a delta object which contains the old ID and the new ID.
 
 ```javascript

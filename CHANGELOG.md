@@ -5,7 +5,6 @@
   - remove the `prefix` option
   - rename `idrefs` -> `idAttrs`
   - rename `include` (default: true) -> `exclude` (default: false)
-
 - `exclude` can now return a string as its truthy value, representing
   the replacement name for the ID (e.g. for globals)
 - remove `require`s from the ESM build

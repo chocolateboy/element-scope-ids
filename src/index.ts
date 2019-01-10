@@ -75,8 +75,8 @@ function generateId (id: string): string {
 }
 
 // the `exclude` predicate is a function which takes a candidate element and an
-// ID attribute and returns true if the ID change should be vetoed (i.e. excluded),
-// false otherwise.
+// ID attribute name/value and returns true if the ID change should be vetoed
+// (i.e. excluded), false otherwise.
 //
 // there are up to 3 exclude predicates that can be consulted: a default
 // (defaultExclude), a predicate passed to the Scoper constructor, and an override
@@ -121,13 +121,13 @@ function getExclude (base: Exclude, override?: Exclude): Exclude {
 // returns the list (e.g. array) of attribute names which are examined for IDs.
 // may be overridden (via a function), in which case we pass the (cloned)
 // default list as a parameter so that it can be modified or augmented
-function getIdAttrs (idAttrs: (IdAttrs | undefined), baseIdAttrs: Iterable<string>): Iterable<string> {
-    if (typeof idAttrs === 'function') {
-        const clone = [...baseIdAttrs]
-        idAttrs = idAttrs(clone)
+function getIdAttrs (base: Iterable<string>, override?: IdAttrs): Iterable<string> {
+    if (typeof override === 'function') {
+        const clone = [...base]
+        override = override(clone)
     }
 
-    return idAttrs || baseIdAttrs
+    return override || base
 }
 
 // instances of this class scope IDs within an element i.e. rewrite them to be
@@ -146,7 +146,7 @@ export default class Scoper extends EventEmitter {
         const options = _options || {}
 
         this.exclude = getExclude(defaultExclude, options.exclude)
-        this.idAttrs = getIdAttrs(options.idAttrs, DEFAULT_ID_ATTRS)
+        this.idAttrs = getIdAttrs(DEFAULT_ID_ATTRS, options.idAttrs)
     }
 
     // the guts of the public scoping methods
@@ -156,7 +156,7 @@ export default class Scoper extends EventEmitter {
     private _scopeOwnIds<T extends HTMLElement>(element: T, scope: Scope, _options?: Options): T {
         const options = _options || {}
         const exclude = getExclude(this.exclude, options.exclude)
-        const idAttrs = getIdAttrs(options.idAttrs, this.idAttrs)
+        const idAttrs = getIdAttrs(this.idAttrs, options.idAttrs)
         const deltas: Deltas = {}
 
         for (const name of idAttrs) {
@@ -228,7 +228,7 @@ export default class Scoper extends EventEmitter {
     public scopeIds<T extends HTMLElement>(element: T, _options?: Options): T {
         let options = _options || {}
 
-        const idAttrs = getIdAttrs(options.idAttrs, this.idAttrs)
+        const idAttrs = getIdAttrs(this.idAttrs, options.idAttrs)
         const scope = {}
 
         // merge in the resolved idAttrs: we don't need to keep resolving them
@@ -253,9 +253,6 @@ const SCOPER = new Scoper()
 
 // a convenience function which provides access to the `scopeIds` method for the
 // common case where a custom Scoper instance isn't needed
-//
-// XXX don't export this (yet), as mixing named and default exports triggers
-// breakage (microbundle) or a warning (bili)
 export function scopeIds (el: HTMLElement, options?: Options) {
     return SCOPER.scopeIds(el, options)
 }
