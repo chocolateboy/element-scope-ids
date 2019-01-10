@@ -85,7 +85,7 @@ for (const el of document.querySelectorAll('.tabs')) {
 This module exports a class (and helper functions which wrap an instance of the class)
 which rewrites IDs within elements so that they're safe to compose with other elements
 on the page which use the same IDs. This is done by rewriting each ID to be globally unique
-(while preserving any internal links). This is similar to the technique used to transpile
+(while preserving any internal references). This is similar to the technique used to transpile
 scoped CSS (e.g. CSS modules) by PostCSS, Angular etc.
 
 # WHY?
@@ -195,7 +195,7 @@ values for the attribute e.g.:
 
 ```javascript
 scoper.on('ids', (element, ids) => {
-    element.setAttribute('data-original-ids', Object.keys(ids).join(' '))
+    element.setAttribute('data-scoped-attributes', Object.keys(ids).join(' '))
 })
 ```
 
@@ -244,11 +244,11 @@ It can also be used to [exclude global IDs](#exclude-global-ids).
 
 #### idAttrs
 
-**Type**: [IdAttrs](#idattrs)
+**Type**: [IdAttrs](#type-idattrs)
 
 A list (e.g. array) of attribute names to treat as "ID-like" i.e. the names of attributes IDs should be replaced in.
 
-To add (or remove) an ID from the default list, a function can be supplied which receives the list as an argument.
+To add attributes to the default list, or exclude attributes, a function can be supplied which receives the default list as an argument.
 The function's return value is used as the new list:
 
 ```javascript
@@ -341,7 +341,7 @@ option which identifies and optionally transforms global IDs e.g.:
 
 ```javascript
 function isGlobal (el, { value }, next) {
-    return (value && value[0] === '/') ? value.substr(1) : next()
+    return (value[0] === '/') ? value.substr(1) : next()
 }
 
 const scoper = new Scoper({ exclude: isGlobal })
@@ -387,13 +387,13 @@ import 'jquery-initialize'
 import Tablist from '@accede-web/tablist'
 
 // scope IDs in every current and future element which has data-scope-ids="true"
-$.initialize(`[data-scope-ids="true"]`, function () {
+$.initialize('[data-scope-ids="true"]', function () {
     scopeIds(this)
     $(this).attr('data-scope-ids', 'done') // mark the IDs as scoped
 })
 
 // don't process tabs until their IDs have been scoped
-$.initialize(`[data-scope-ids="done"] [role="tablist"]`, function () {
+$.initialize('[data-scope-ids="done"] [role="tablist"]', function () {
     new Tablist(this).mount()
 })
 ```

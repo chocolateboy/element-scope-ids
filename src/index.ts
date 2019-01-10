@@ -1,11 +1,10 @@
-import 'core-js/fn/array/flat-map'
 import EventEmitter from 'little-emitter'
 import nanoid       from 'nanoid/non-secure'
 
 // an object which logs the changes made to an element's ID attributes. passed
 // as a parameter to `ids` event listeners.
 //
-// each key is an attribute name (e.g. `id` or `aria-controls`), and each value
+// each key is an attribute name (e.g. "id" or "aria-controls"), and each value
 // is a before/after (new/old) pair for the attribute's value (string)
 type Deltas = { [name: string]: { old: string, 'new': string } }
 
@@ -15,7 +14,7 @@ type Exclude = (el: HTMLElement, idAttr: IdAttr, next?: Exclude) => boolean | st
 
 // an object passed to `id` event handlers which represents an element's modified
 // ID attribute
-type IdAttr = { name: string, value: string, next?: Exclude }
+type IdAttr = { name: string, value: string }
 
 // a collection (e.g. array) of strings representing attribute names whose
 // values are IDs. can be a function which augments or overrides the default
@@ -29,7 +28,7 @@ type Scope = { [key: string]: string }
 // https://alex7kom.github.io/nano-nanoid-cc/
 const HASH_LENGTH = 16
 
-// options passed to a) the constructor, and b) the `scopeIds` method
+// options passed to a) the constructor, and b) the scoping methods
 type Options = {
     exclude?: Exclude;
     idAttrs?: IdAttrs;
@@ -66,19 +65,19 @@ function defaultExclude (el: HTMLElement, idAttr: IdAttr): boolean {
     return false
 }
 
-// scope the supplied ID by returning a replacement that's globally unique
+// scope the supplied ID by returning a globally unique replacement
 function generateId (id: string): string {
     const hash = nanoid(HASH_LENGTH)
     return `${ID_PREFIX}-${id}-${hash}`
 }
 
-// the `exclude` predicate is a function which takes a candidate element and an
-// ID attribute name/value and returns true if the ID change should be vetoed
+// the `exclude` predicate is a function which takes a target element and the
+// ID attribute's name/value and returns true if the ID change should be vetoed
 // (i.e. excluded), false otherwise.
 //
 // there are up to 3 exclude predicates that can be consulted: a default
 // (defaultExclude), a predicate passed to the Scoper constructor, and an override
-// passed to the scoping method
+// passed to the scoping methods
 //
 // each predicate can delegate to its previous/parent predicate e.g. the
 // method predicate can delegate to the constructor predicate and the
@@ -97,7 +96,6 @@ function generateId (id: string): string {
 //
 //   - https://github.com/koajs/compose
 //   - https://github.com/JeffRMoore/brigade
-//   - https://gist.github.com/darrenscerri/5c3b3dcbe4d370435cfa
 function getExclude (base: Exclude, override?: Exclude): Exclude {
     if (!override) {
         return base
@@ -116,9 +114,9 @@ function getExclude (base: Exclude, override?: Exclude): Exclude {
     }
 }
 
-// returns the list (e.g. array) of attribute names which are examined for IDs.
+// returns the collection (e.g. array) of attribute names which are examined for IDs.
 // may be overridden (via a function), in which case we pass the (cloned)
-// default list as a parameter so that it can be modified or augmented
+// default collection as a parameter so that it can be modified or augmented
 function getIdAttrs (base: Iterable<string>, override?: IdAttrs): Iterable<string> {
     if (typeof override === 'function') {
         const clone = [...base]
@@ -132,8 +130,8 @@ function getIdAttrs (base: Iterable<string>, override?: IdAttrs): Iterable<strin
 // globally unique.
 //
 // the main reason to instantiate this is to register event listeners. otherwise,
-// if the default options are fine, the `scopeIds` method can be called on a
-// default instance of this class via the exported `scopeIds` wrapper function
+// if the default options are fine, the scoping methods can be called on a
+// default instance of this class via the exported wrapper functions
 export default class Scoper extends EventEmitter {
     private exclude: Exclude
     private idAttrs: Iterable<string>
@@ -164,14 +162,14 @@ export default class Scoper extends EventEmitter {
                 continue
             }
 
-            const mapped = oldIds.split(/\s+/).flatMap(id => {
+            const mapped = oldIds.split(/\s+/).map(id => {
                 const $exclude = exclude(element, { name, value: id })
 
                 if ($exclude) {
                     if (typeof $exclude === 'string') {
-                        return [$exclude]
+                        return $exclude
                     } else {
-                        return [id]
+                        return id
                     }
                 }
 
@@ -188,7 +186,7 @@ export default class Scoper extends EventEmitter {
 
                 this.emit('id', element, { name, old: id, 'new': cached })
 
-                return [cached]
+                return cached
             })
 
             const newIds = mapped.join(' ')
@@ -230,7 +228,7 @@ export default class Scoper extends EventEmitter {
         const scope = {}
 
         // merge in the resolved idAttrs: we don't need to keep resolving them
-        // if `idAttrs` is a callback
+        // if the `idAttrs` option is a callback
         if (typeof options.idAttrs === 'function') {
             options = { ...options, idAttrs }
         }
