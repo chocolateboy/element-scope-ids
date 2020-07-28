@@ -1,5 +1,5 @@
 import EventEmitter from 'little-emitter'
-import nanoid       from 'nanoid/non-secure'
+import { nanoid }   from 'nanoid/non-secure'
 
 // an object which logs the changes made to an element's ID attributes. passed
 // as a parameter to `ids` event listeners.

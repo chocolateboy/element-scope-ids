@@ -1,41 +1,50 @@
 {
     "name": "element-scope-ids",
     "version": "0.1.1",
-    "description": "scope IDs to an element by rewriting them to be globally unique",
+    "description": "Scope IDs to an element by rewriting them to be globally unique",
     "repository": "chocolateboy/element-scope-ids",
     "author": "chocolateboy",
     "license": "Artistic-2.0",
     "main": "dist/index.js",
-    "module": "dist/index.mjs",
+    "module": "dist/index.esm.js",
     "types": "dist/index.d.ts",
+    "unpkg": "dist/index.umd.min.js",
+    "jsdelivr": "dist/index.umd.min.js",
     "scripts": {
-        "build": "npm run build:cjs && npm run build:esm && npm run bundle:types",
-        "build:cjs": "microbundle --no-compress --strict --format cjs src/index.cjs.ts",
-        "build:esm": "microbundle --no-compress --strict --format es src/index.ts",
-        "bundle:types": "shx cp src/types.d.ts ./dist/",
-        "clean": "shx rm -rf ./dist ./.*cache*",
-        "prepublishOnly": "npm run clean && npm run test",
-        "test": "npm run build && node ./test.js"
+        "build": "bili --map --format cjs -d dist --file-name index.js src/index.cjs.ts",
+        "build:cjs": "cross-env NODE_ENV=production bili --no-map --module-name ElementScopeIDs --format cjs --file-name index.js -d dist src/index.cjs.ts",
+        "build:esm:umd": "cross-env NODE_ENV=production bili --no-map --module-name ElementScopeIDs --format esm,umd-min -d dist src/index.ts",
+        "build:release": "run-s build:cjs build:esm:umd",
+        "clean": "shx rm -rf dist",
+        "doctoc": "markdown-toc --bullets=- --maxdepth 3 -i README.md",
+        "prepublishOnly": "run-s clean test build:release",
+        "rebuild": "run-s clean build",
+        "test:run": "node ./test.js",
+        "test": "run-s typecheck build test:run",
+        "typecheck": "tsc --noEmit --noImplicitAny --noUnusedLocals --noUnusedParameters --strict"
     },
     "files": [
         "dist/index.d.ts",
+        "dist/index.esm.js",
         "dist/index.js",
-        "dist/index.js.map",
-        "dist/index.mjs",
-        "dist/index.mjs.map",
-        "dist/types.d.ts"
+        "dist/index.umd.min.js"
     ],
     "dependencies": {
-        "core-js": "^2.5.7",
-        "little-emitter": "~0.2.0",
-        "nanoid": "^2.0.0"
+        "core-js": "^3.6.5",
+        "little-emitter": "^0.3.4",
+        "nanoid": "^3.1.11"
     },
     "devDependencies": {
-        "@babel/core": "^7.1.6",
-        "@babel/preset-env": "^7.1.6",
-        "microbundle": "^0.9.0",
+        "@babel/core": "^7.10.5",
+        "@babel/preset-env": "^7.10.4",
+        "babel-plugin-source-map-support": "^2.1.2",
+        "bili": "^5.0.5",
+        "cross-env": "^7.0.2",
+        "markdown-toc": "^1.2.0",
+        "npm-run-all": "^4.1.5",
+        "rollup-plugin-typescript2": "^0.27.1",
         "shx": "^0.3.2",
-        "typescript": "^3.1.6"
+        "typescript": "^3.9.7"
     },
     "browserslist": [
         "> 1%",

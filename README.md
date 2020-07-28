@@ -1,7 +1,7 @@
 # element-scope-ids
 
-[![Build Status](https://secure.travis-ci.org/chocolateboy/element-scope-ids.svg)](http://travis-ci.org/chocolateboy/element-scope-ids)
-[![NPM Version](http://img.shields.io/npm/v/element-scope-ids.svg)](https://www.npmjs.org/package/element-scope-ids)
+[![Build Status](https://travis-ci.org/chocolateboy/element-scope-ids.svg)](https://travis-ci.org/chocolateboy/element-scope-ids)
+[![NPM Version](https://img.shields.io/npm/v/element-scope-ids.svg)](https://www.npmjs.org/package/element-scope-ids)
 
 - [NAME](#name)
 - [INSTALLATION](#installation)
@@ -355,7 +355,7 @@ for (const el of document.querySelectorAll('[data-scope-ids="true"]')) {
 **before**:
 
 ```html
-<div data-scope-ids"true">
+<div data-scope-ids="true">
     <span id="foo"></span>
     <span id="/bar"></span>
     <span id="/baz"></span>
@@ -445,7 +445,7 @@ The following NPM scripts are available:
 
 # COPYRIGHT AND LICENSE
 
-Copyright © 2018-2019 by chocolateboy.
+Copyright © 2018-2020 by chocolateboy.
 
 This is free software; you can redistribute it and/or modify it under the
-terms of the [Artistic License 2.0](http://www.opensource.org/licenses/artistic-license-2.0.php).
+terms of the [Artistic License 2.0](https://www.opensource.org/licenses/artistic-license-2.0.php).
