@@ -90,7 +90,7 @@ scoped CSS (e.g. CSS modules) by PostCSS, Angular etc.
 
 # WHY?
 
-IDs are the natural way to declare relationships between elements in various HTML components e.g.:
+IDs are the natural way to declare relationships between elements in various HTML components, e.g.:
 
 - [accordions](https://www.w3.org/TR/wai-aria-practices/#accordion) and
   [tabs](https://www.w3.org/TR/wai-aria-practices/#tabpanel)
@@ -106,7 +106,7 @@ It can also be tedious and error prone even in multi-page apps simply because ID
 a page into reusable components can make it difficult to keep track of which IDs are safe to use
 where, and this can be compounded in apps which pull in third-party components.
 
-One solution is to use another attribute e.g. `data-id`, but these remain unique IDs in everything
+One solution is to use another attribute, e.g. `data-id`, but these remain unique IDs in everything
 but name, and they still need to be translated back into actual IDs for ARIA/form elements etc.,
 so this does little more than move the problem sideways.
 
@@ -191,7 +191,7 @@ for attributes which may take multiple IDs, e.g. `aria-labelledby`.
 
 Fired after all IDs have been replaced in an element. Passed the element and an object whose
 keys are the names of modified attributes and whose values are delta objects with the old and new
-values for the attribute e.g.:
+values for the attribute, e.g.:
 
 ```javascript
 scoper.on('ids', (element, ids) => {
@@ -229,7 +229,7 @@ const scoper = new Scoper({
 })
 ```
 
-`exclude` can be used to filter by type e.g. the default implementation restricts the `for`
+`exclude` can be used to filter by type, e.g. the default implementation restricts the `for`
 attribute to LABEL elements:
 
 ```javascript
@@ -324,7 +324,7 @@ Uses the same default instance of the Scoper class as [`scopeIds`](#scope-ids-fu
 ## Debugging
 
 To log what IDs have been changed where, intercept one of the [events](#events)
-(to veto a change, see [`exclude`](#exclude)) e.g.:
+(to veto a change, see [`exclude`](#exclude)), e.g.:
 
 ```javascript
 const scoper = new Scoper()
@@ -337,7 +337,7 @@ scoper.on('id', (element, id) => {
 ## Exclude global IDs
 
 This can be done by supplying an [`exclude`](#exclude) constructor/method
-option which identifies and optionally transforms global IDs e.g.:
+option which identifies and optionally transforms global IDs, e.g.:
 
 ```javascript
 function isGlobal (el, { value }, next) {
