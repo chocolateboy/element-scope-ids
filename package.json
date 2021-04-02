@@ -4,7 +4,7 @@
     "description": "Scope IDs to an element by rewriting them to be globally unique",
     "repository": "chocolateboy/element-scope-ids",
     "author": "chocolateboy",
-    "license": "Artistic-2.0",
+    "license": "MIT",
     "main": "dist/index.js",
     "module": "dist/index.esm.js",
     "types": "dist/index.d.ts",

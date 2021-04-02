@@ -1,3 +1,7 @@
+## 0.2.0 - TBD
+
+- relicense: Artistic 2.0 -> MIT
+
 ## 0.1.1 - 2019-01-10
 
 - types: fix (remove) broken reference path
